@@ -43,8 +43,11 @@ module ModBus
       else
         log "Ignore package: don't match uid ID"
       end
+      # Allow the Timeout wrapping query() to raise; use explicit deadline
+      # so we do not spin indefinitely if Timeout.timeout cannot interrupt.
+      deadline = Time.now + (respond_to?(:read_retry_timeout, true) ? read_retry_timeout : 30)
       loop do
-        # waite timeout
+        raise ModBus::Errors::ModBusTimeout, "Timed out waiting after invalid response" if Time.now > deadline
         sleep(0.1)
       end
     end

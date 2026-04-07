@@ -42,12 +42,18 @@ module ModBus
 
     def read(io, len)
       result = +""
+      timeout = respond_to?(:read_retry_timeout, true) ? read_retry_timeout : nil
       loop do
         this_iter = io.read(len - result.length)
-        result.concat(this_iter) if this_iter
+
+        raise ::IOError, "End of file reached on ModBus device" if this_iter.nil?
+
+        result.concat(this_iter)
         return result if result.length == len
 
-        io.wait_readable
+        unless io.wait_readable(timeout)
+          raise ModBus::Errors::ModBusTimeout, "Timeout waiting for serial data"
+        end
       end
     end
 
